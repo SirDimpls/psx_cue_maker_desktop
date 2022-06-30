@@ -1,21 +1,21 @@
 #include <cstdlib>
 
+#include <iostream>
+#include <string>
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <experimental/optional>
 
 #include "windows.h"
 #include "Objbase.h"
 #include "Shlobj.h"
 
 using namespace std;
-using namespace std::experimental;
 
 TCHAR select_directory_path[MAX_PATH];
 
 // TODO: A lot of error detection and handling is missing.
-
+/*
 class COM {
 public:
   COM() {
@@ -26,6 +26,7 @@ public:
     CoUninitialize();
   }
 };
+*/
 
 class file_search {
 public:
@@ -47,14 +48,14 @@ public:
   inline const char* found_filename() { return find_data.cFileName; };
 };
 
-optional<string> select_directory() {
+string select_directory() {
   BROWSEINFO browseinfo {};
   browseinfo.pszDisplayName = select_directory_path;
   browseinfo.lpszTitle = "Please select directory containing the bin files.";
   browseinfo.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_NONEWFOLDERBUTTON;
   PIDLIST_ABSOLUTE idlist = SHBrowseForFolder(&browseinfo);
   if (idlist == nullptr) {
-    return {};
+    return "";
   }
   else {
     if (!SHGetPathFromIDList(idlist, select_directory_path)) {
@@ -76,7 +77,7 @@ vector<string> find_bin_files(string directory) {
       result.emplace_back(fs.found_filename());
     }
   }
-  
+
   return result;
 }
 
@@ -97,11 +98,11 @@ string generate_cuesheet(vector<string> files) {
       ss << "   INDEX 01 00:02:00\n";
     };
   }
-  
+
   return ss.str();
 }
 
-optional<string> get_cuesheet_filename(string directory, vector<string> files) {
+string get_cuesheet_filename(string directory, vector<string> files) {
   TCHAR filename[MAX_PATH];
   filename[0] = 0;
   OPENFILENAME save_dialog {};
@@ -118,7 +119,7 @@ optional<string> get_cuesheet_filename(string directory, vector<string> files) {
     return string(filename);
   }
   else {
-    return {};
+    return "";
   }
 }
 
@@ -132,17 +133,49 @@ bool file_exists(string filename) {
 }
 
 int main(int argc, const char* argv[]) {
-  try {
-    COM com;
+  string path;
+  string filename;
 
-    auto dir = select_directory();
-    if (dir) {
-      auto files = find_bin_files(*dir);
+  if (argc > 1) {
+    int i = 1;
+    while (i < argc) {
+      string a = argv[i];
+      if (a == "--path" && i + 1 < argc) {
+        path = argv[++i];
+        cout << "Path = " << path << endl;
+      }
+      if (a == "--output" && i + 1 < argc) {
+        filename = argv[++i];
+        cout << "Cue filename = " << filename << endl;
+      }
+      i++;
+    }
+  }
+
+  try {
+    //COM com;
+
+    string dir;
+    if (path.empty()) {
+      dir = select_directory();
+    } else {
+      dir = path;
+    }
+    if (!dir.empty()) {
+      auto files = find_bin_files(dir);
       if (files.empty()) throw runtime_error("No bin files found in the selected directory.");
       auto cuesheet = generate_cuesheet(files);
-      auto filename = get_cuesheet_filename(*dir, files);
-      if (filename) {
-        ofstream file(filename->c_str(), ios::out);
+      if (filename.empty()) {
+        filename = get_cuesheet_filename(dir, files);
+      } else {
+        if (path.back() == '\\' or path.back() == '/') {
+            filename = path + filename;
+        } else {
+            filename = path + "\\" + filename;
+        }
+      }
+      if (!filename.empty()) {
+        ofstream file(filename.c_str(), ios::out);
         file << cuesheet.c_str();
       }
     }
@@ -159,6 +192,6 @@ int main(int argc, const char* argv[]) {
     LocalFree(buffer);
     return EXIT_FAILURE;
   }
-  
+
   return EXIT_SUCCESS;
 }
