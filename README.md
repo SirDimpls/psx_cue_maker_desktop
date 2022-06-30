@@ -1,6 +1,16 @@
 PSX Cue Maker
 ===========
 
+## Modifications
+
+Runnable via command-line. Usage:
+
+```
+PSXCueMaker.exe --path "path/to/rom" --output "image.cue"
+```
+
+## Project
+
 Sometimes when you are looking for PlayStation/PSX roms, you find an archive full of bin files.
 
 Loading the first bin file into an emulator usually allows you to play the game, but with no background music.
