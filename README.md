@@ -6,7 +6,7 @@ PSX Cue Maker
 Runnable via command-line. Usage:
 
 ```
-PSXCueMaker.exe --path "path/to/rom" --output "image.cue"
+PSXCueMaker.exe --path "path/to/bins" --output "image.cue"
 ```
 
 ## Project
